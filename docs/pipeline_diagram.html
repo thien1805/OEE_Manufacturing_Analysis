@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ Đồ Dòng Chảy Dữ Liệu dbt - OEE Manufacturing Pipeline</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: rgba(30, 41, 59, 0.85);
+            --border-color: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --bronze-color: #f97316;
+            --silver-color: #a855f7;
+            --gold-color: #22c55e;
+            --blue-color: #38bdf8;
+            --accent: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* HEADER */
+        header {
+            padding: 20px 40px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .header-badge {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid;
+        }
+
+        .badge-bronze { background: rgba(249, 115, 22, 0.15); border-color: var(--bronze-color); color: var(--bronze-color); }
+        .badge-silver { background: rgba(168, 85, 247, 0.15); border-color: var(--silver-color); color: var(--silver-color); }
+        .badge-gold { background: rgba(34, 197, 94, 0.15); border-color: var(--gold-color); color: var(--gold-color); }
+
+        /* CONTROLS */
+        .controls-bar {
+            padding: 12px 40px;
+            background: rgba(30, 41, 59, 0.5);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .zoom-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: #334155;
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        /* MAIN CANVAS */
+        .main-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            overflow: hidden;
+            height: calc(100vh - 140px);
+        }
+
+        #diagram-wrapper {
+            flex: 1;
+            height: 100%;
+            overflow: hidden;
+            background: 
+                radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+            background-size: 24px 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+        }
+
+        #diagram-wrapper:active {
+            cursor: grabbing;
+        }
+
+        .mermaid {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mermaid svg {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100%;
+        }
+
+        /* SIDEBAR INFO PANEL */
+        .info-panel {
+            width: 380px;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border-left: 1px solid var(--border-color);
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-panel h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .step-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            transition: all 0.2s;
+        }
+
+        .step-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .step-card.bronze { border-left: 4px solid var(--bronze-color); }
+        .step-card.silver { border-left: 4px solid var(--silver-color); }
+        .step-card.gold { border-left: 4px solid var(--gold-color); }
+        .step-card.bi { border-left: 4px solid var(--blue-color); }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .step-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .step-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .step-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .step-desc ul {
+            padding-left: 16px;
+            margin-top: 6px;
+        }
+
+        .step-desc li {
+            margin-bottom: 4px;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-title">
+            <h1>🏭 OEE Manufacturing Pipeline - dbt Data Lineage</h1>
+            <p>Sơ đồ dòng chảy dữ liệu trực quan: Từ File Excel IoT ➔ Bronze ➔ Silver (dbt Staging) ➔ Gold (Star Schema) ➔ Power BI</p>
+        </div>
+        <div class="header-badge">
+            <div class="badge badge-bronze">🥉 Bronze (Raw)</div>
+            <div class="badge badge-silver">🥈 Silver (Cleansed)</div>
+            <div class="badge badge-gold">🥇 Gold (Star Schema)</div>
+        </div>
+    </header>
+
+    <!-- CONTROLS -->
+    <div class="controls-bar">
+        <div>
+            <span>💡 <b>Thao tác:</b> Giữ chuột trái để kéo (Pan), cuộn con trỏ chuột để thu/phóng (Zoom).</span>
+        </div>
+        <div class="zoom-buttons">
+            <button class="btn" onclick="panZoom.zoomIn()">➕ Phóng to</button>
+            <button class="btn" onclick="panZoom.zoomOut()">➖ Thu nhỏ</button>
+            <button class="btn" onclick="panZoom.reset()">🔄 Căn giữa (Reset)</button>
+        </div>
+    </div>
+
+    <!-- MAIN CANVAS -->
+    <div class="main-container">
+        <!-- DIAGRAM SVG CONTAINER -->
+        <div id="diagram-wrapper">
+            <div class="mermaid" id="pipeline-mermaid">
+flowchart TD
+    %% INGESTION LAYER
+    subgraph S1["📥 1. TẦNG INGESTION (Thu Thập & Đọc Sheet)"]
+        Excel["📄 OEE Manufacturing Report.xlsx<br/><b>File Excel Cảm Biến IoT</b>"]
+        PyScript["🐍 split_and_load.py<br/><b>Trích xuất Sheets & Load DuckDB</b>"]
+        Excel -->|Đọc 4 sheets| PyScript
+    end
+
+    %% BRONZE LAYER
+    subgraph S2["🥉 2. TẦNG BRONZE (Dữ Liệu Thô - DuckDB Schema: 'bronze')"]
+        b_fact[("📦 bronze.fact<br/><b>8,044 dòng thô</b>")]
+        b_machine[("📦 bronze.machine<br/><b>10 máy</b>")]
+        b_product[("📦 bronze.product<br/><b>18 dòng bánh</b>")]
+        b_target[("📦 bronze.target_speeds<br/><b>72 định mức</b>")]
+    end
+
+    PyScript -->|Create Table| b_fact
+    PyScript -->|Create Table| b_machine
+    PyScript -->|Create Table| b_product
+    PyScript -->|Create Table| b_target
+
+    %% SILVER LAYER
+    subgraph S3["🥈 3. TẦNG SILVER (Làm Sạch & Chuẩn Hóa - dbt Staging: 'silver')"]
+        s_fact["⚡ stg_fact (View)<br/>──────────────────────<br/>• trim() khoảng trắng tên máy/sản phẩm<br/>• Khử 3 dòng trùng lặp (Row_Number)<br/>• Chuẩn hóa mã '0' ➔ 'Unclassified'<br/>• Ép kiểu datetime, duration, biscuits<br/><i>(Còn 8,041 dòng sạch)</i>"]
+        s_machine["⚡ stg_machine (View)<br/>──────────────────────<br/>• trim() Machine Name & Type<br/><i>(10 máy chuẩn hóa)</i>"]
+        s_product["⚡ stg_product (View)<br/>──────────────────────<br/>• trim() Product Name<br/>• Tách cases_per_pallet (140)<br/>& biscuits_per_pallet (3360)"]
+        s_target["⚡ stg_target_speeds (View)<br/>──────────────────────<br/>• trim() tên máy & sản phẩm<br/>• Định mức target_per_hour (51,840)"]
+    end
+
+    b_fact -->|source| s_fact
+    b_machine -->|source| s_machine
+    b_product -->|source| s_product
+    b_target -->|source| s_target
+
+    %% GOLD LAYER
+    subgraph S4["🥇 4. TẦNG GOLD (Star Schema & Metrics - dbt Marts: 'gold')"]
+        subgraph Dims["📐 BẢNG CHIỀU (DIMENSIONS)"]
+            d_machine[("🏷️ dim_machine<br/>• PK: machine_id (MD5)<br/>• machine_name, machine_type")]
+            d_product[("🏷️ dim_product<br/>• PK: product_id (MD5)<br/>• Quy cách đóng gói")]
+            d_date[("🏷️ dim_date<br/>• PK: date_id (Date Spine)<br/>• Ngày, Thứ, Tuần, Tháng, Quý")]
+        end
+
+        subgraph Facts["📊 BẢNG SỰ KIỆN & CHỈ SỐ (FACT TABLES)"]
+            f_runs[("🏭 fct_production_runs (Table)<br/>──────────────────────<br/>• PK: run_id (MD5)<br/>• FK: date_id, machine_id, product_id<br/>• Ghép nối Target Speed ➔ ideal_production<br/>• Tính scrap_biscuits & duration_hours<br/>• Phân loại: is_operating vs is_planned_downtime<br/><i>(8,041 lượt chạy máy chi tiết)</i>")]
+            
+            f_oee[("📈 fct_daily_oee (Table)<br/>──────────────────────<br/>• Grain: Ngày x Máy x Sản phẩm<br/>• Availability % = Operating / Planned Time<br/>• Performance % = Actual / Ideal Output<br/>• Quality % = Good / Total Biscuits<br/>• OEE % = A x P x Q<br/><i>(193 dòng tổng hợp quản trị)</i>")]
+        end
+    end
+
+    s_machine --> d_machine
+    s_product --> d_product
+
+    s_fact --> f_runs
+    s_target -->|JOIN target speed| f_runs
+
+    d_machine -.->|1 - N| f_runs
+    d_product -.->|1 - N| f_runs
+    d_date -.->|1 - N| f_runs
+
+    f_runs -->|GROUP BY date, machine, product| f_oee
+
+    %% CONSUMPTION LAYER
+    subgraph S5["🚀 5. TẦNG KHAI THÁC & BÁO CÁO (CONSUMPTION)"]
+        PowerBI["📊 Power BI Dashboard<br/><i>Executive Cockpit, Bottleneck, Quality</i>"]
+        Adhoc["🔍 SQL Ad-hoc Analysis<br/><i>Trả lời 10 câu hỏi chiến lược cho BOD</i>"]
+    end
+
+    d_machine ===> PowerBI
+    d_product ===> PowerBI
+    d_date ===> PowerBI
+    f_runs ===> PowerBI
+    f_oee ===> PowerBI
+    f_oee ===> Adhoc
+
+    %% STYLING
+    classDef bronzeStyle fill:#2a1b12,stroke:#f97316,stroke-width:2px,color:#fed7aa;
+    classDef silverStyle fill:#281836,stroke:#c084fc,stroke-width:2px,color:#f3e8ff;
+    classDef goldStyle fill:#142d1f,stroke:#4ade80,stroke-width:2px,color:#dcfce7;
+    classDef biStyle fill:#0c2a42,stroke:#38bdf8,stroke-width:2px,color:#e0f2fe;
+
+    class b_fact,b_machine,b_product,b_target bronzeStyle;
+    class s_fact,s_machine,s_product,s_target silverStyle;
+    class d_machine,d_product,d_date,f_runs,f_oee goldStyle;
+    class PowerBI,Adhoc biStyle;
+            </div>
+        </div>
+
+        <!-- SIDEBAR EXPLANATION -->
+        <div class="info-panel">
+            <h2>📖 Logic Biến Đổi Dữ Liệu</h2>
+
+            <div class="step-card bronze">
+                <div class="step-header">
+                    <span class="step-title">1. Tầng Bronze (Raw)</span>
+                    <span class="step-tag">DuckDB Raw</span>
+                </div>
+                <div class="step-desc">
+                    Lưu trữ dữ liệu thô nguyên vẹn từ 4 sheet Excel không qua chỉnh sửa để đảm bảo tính Audit:
+                    <ul>
+                        <li><code>bronze.fact</code>: 8,044 bản ghi.</li>
+                        <li><code>bronze.machine</code>: 10 máy.</li>
+                        <li><code>bronze.product</code>: 18 dòng bánh.</li>
+                        <li><code>bronze.target_speeds</code>: 72 định mức.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="step-card silver">
+                <div class="step-header">
+                    <span class="step-title">2. Tầng Silver (Cleansing)</span>
+                    <span class="step-tag">dbt Views</span>
+                </div>
+                <div class="step-desc">
+                    Xử lý 4 bẫy dữ liệu phát hiện trong phân tích:
+                    <ul>
+                        <li><b>Cắt khoảng trắng:</b> <code>trim()</code> triệt để đuôi tên máy & sản phẩm.</li>
+                        <li><b>Khử trùng lặp:</b> Khử 3 dòng trùng lặp hoàn toàn bằng <code>row_number()</code> (còn 8,041 dòng).</li>
+                        <li><b>Chuẩn hóa lỗi:</b> Chuyển mã <code>'0'</code> thành <code>'Unclassified'</code>.</li>
+                        <li><b>Quy cách đóng gói:</b> Tách rõ <code>cases (140)</code> và <code>biscuits (3360)</code>.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="step-card gold">
+                <div class="step-header">
+                    <span class="step-title">3. Tầng Gold (Star Schema)</span>
+                    <span class="step-tag">dbt Tables</span>
+                </div>
+                <div class="step-desc">
+                    Mô hình hóa dữ liệu phục vụ phân tích OEE:
+                    <ul>
+                        <li><b>Dimensions:</b> Sinh khóa Surrogate Key MD5 (<code>machine_id</code>, <code>product_id</code>) và tạo lịch 365 ngày (<code>dim_date</code>).</li>
+                        <li><b>fct_production_runs:</b> Ghép target speed tính <code>ideal_production</code>, <code>scrap_biscuits</code>, và phân loại trạng thái máy.</li>
+                        <li><b>fct_daily_oee:</b> Tính sẵn 3 trụ cột $A, P, Q$ và chỉ số $OEE = A \times P \times Q$.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="step-card bi">
+                <div class="step-header">
+                    <span class="step-title">4. Bảo Chứng Kiểm Thử</span>
+                    <span class="step-tag">19 dbt Tests</span>
+                </div>
+                <div class="step-desc">
+                    Đạt <b>PASS 100% (19/19)</b>:
+                    <ul>
+                        <li><code>unique</code>: Toàn bộ khóa chính là duy nhất.</li>
+                        <li><code>not_null</code>: Không bị trống giá trị định danh.</li>
+                        <li><code>relationships</code>: Khóa ngoại khớp 100% giữa Fact và Dim.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INITIALIZE MERMAID & PAN-ZOOM -->
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        let panZoom;
+
+        // Wait for mermaid to finish rendering
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const svg = document.querySelector('#pipeline-mermaid svg');
+                if (svg) {
+                    panZoom = svgPanZoom(svg, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: false,
+                        fit: true,
+                        center: true,
+                        minZoom: 0.2,
+                        maxZoom: 10
+                    });
+
+                    // Initial adjustment
+                    panZoom.zoomBy(0.85);
+                }
+            }, 600);
+        });
+    </script>
+</body>
+</html>

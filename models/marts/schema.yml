@@ -1,0 +1,78 @@
+version: 2
+
+models:
+  - name: dim_machine
+    description: "Bảng chiều Dimension lưu thông tin các loại máy sản xuất bánh"
+    columns:
+      - name: machine_id
+        description: "Khóa chính của bảng máy (Surrogate Key)"
+        tests:
+          - unique
+          - not_null
+      - name: machine_name
+        tests:
+          - not_null
+
+  - name: dim_product
+    description: "Bảng chiều Dimension lưu danh mục sản phẩm bánh và quy cách đóng gói"
+    columns:
+      - name: product_id
+        description: "Khóa chính của bảng sản phẩm (Surrogate Key)"
+        tests:
+          - unique
+          - not_null
+      - name: product_name
+        tests:
+          - not_null
+
+  - name: dim_date
+    description: "Bảng chiều Dimension thời gian ngày"
+    columns:
+      - name: date_id
+        description: "Khóa chính ngày"
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_production_runs
+    description: "Bảng Fact lưu từng sự kiện/ca vận hành máy và phế phẩm"
+    columns:
+      - name: run_id
+        description: "Khóa chính của từng lần chạy máy"
+        tests:
+          - unique
+          - not_null
+      - name: machine_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_machine')
+                field: machine_id
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_id
+      - name: date_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_id
+
+  - name: fct_daily_oee
+    description: "Bảng Fact tổng hợp chỉ số OEE hàng ngày theo Máy và Sản phẩm"
+    columns:
+      - name: machine_id
+        tests:
+          - not_null
+      - name: product_id
+        tests:
+          - not_null
+      - name: date_id
+        tests:
+          - not_null

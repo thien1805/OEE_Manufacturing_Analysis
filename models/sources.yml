@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: bronze
+    description: "Dữ liệu thô ban đầu được import từ file Excel vào DuckDB"
+    tables:
+      - name: fact
+        description: "Dữ liệu nhật ký sản xuất và vận hành máy làm bánh"
+      - name: machine
+        description: "Danh sách và phân loại các loại máy"
+      - name: product
+        description: "Danh mục sản phẩm bánh và quy cách đóng gói"
+      - name: target_speeds
+        description: "Tốc độ sản xuất mục tiêu (target speed) theo từng máy và từng sản phẩm"

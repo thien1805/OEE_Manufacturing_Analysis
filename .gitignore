@@ -1,0 +1,30 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# dbt artifacts & logs
+target/
+dbt_packages/
+logs/
+
+# Database files
+*.duckdb
+*.duckdb.tmp
+*.db
+*.sqlite
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# User configs & credentials
+.user.yml
+profiles.yml
