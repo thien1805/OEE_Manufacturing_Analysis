@@ -71,6 +71,59 @@ BẢNG TỔNG QUAN CHỈ SỐ NHÀ MÁY THÁNG 07/2021:
   * Nhà máy Grandma EDNA đang ở mức **CỰC KỲ NGUY HIỂM (Báo động đỏ)**, kém xa tiêu chuẩn thế giới tới **78.63 điểm %**.
   * Hai "kẻ thù" lớn nhất triệt hạ OEE của nhà máy là **Thời gian dừng máy khổng lồ** (Availability chỉ 18.88%) và **Tỷ lệ phế phẩm kinh hoàng** (Chất lượng chỉ 33.72%, phế phẩm lên tới 66.28%).
 
+* **Hướng dẫn thực hành xây dựng báo cáo trên Excel (Step-by-Step Excel Implementation)**:
+
+  #### Bước 1: Chuẩn bị bảng dữ liệu nguồn (Data Preparation)
+  - Mở file `Fact.xlsx` (chứa 8,041 dòng dữ liệu mẻ chạy) và chuyển vùng dữ liệu thành bảng chính quy bằng phím tắt **`Ctrl + T`** (Windows) hoặc **`Cmd + T`** (Mac), đặt tên bảng là `tbl_Fact`.
+  - Mở file `Target Speeds.xlsx`, đổi tên bảng thành `tbl_TargetSpeeds`.
+
+  #### Bước 2: Thêm các cột tính toán phụ (Calculated Columns) trong `tbl_Fact`
+  Tạo thêm 5 cột vào bên phải bảng `tbl_Fact` với công thức như sau:
+  1. **`Duration_Hours`** (Đổi phút sang giờ):
+     ```excel
+     =[@Duration] / 60
+     ```
+  2. **`Operating_Hours`** (Thời gian chạy máy thực tế):
+     ```excel
+     =IF(OR([@[OEE Category]]="Run Time", [@[OEE Category]]="CC (Changeover Cleaning)"), [@Duration_Hours], 0)
+     ```
+  3. **`Planned_Hours`** (Thời gian kế hoạch, loại trừ bảo dưỡng PM):
+     ```excel
+     =IF([@[OEE Category]]<>"PM (Maintenance)", [@Duration_Hours], 0)
+     ```
+  4. **`Effective_Total`** (Khắc phục lỗi máy khuyết tổng bánh):
+     ```excel
+     =MAX([@TotalBiscuitsMade], [@GoodMadeBiscuits])
+     ```
+  5. **`Ideal_Production`** (Sản lượng lý thuyết định mức):
+     ```excel
+     =IF([@Operating_Hours]>0, [@Operating_Hours] * 51840, 0)
+     ```
+     *(Ghi chú: 51,840 là tốc độ chuẩn toàn nhà máy từ bảng `Target Speeds`).*
+
+  #### Bước 3: Thiết lập Bảng Tổng Hợp KPI (Summary Report)
+  Trên một Sheet mới đặt tên là `OEE_Report`, tạo bảng báo cáo tại ô `B3:D11`:
+
+  | Ô | Chỉ số đo lường (Metric) | Công thức Excel | Kết quả tháng 07/2021 | Định dạng số (Format) |
+  | :--- | :--- | :--- | :---: | :--- |
+  | **C3** | Tổng giờ kế hoạch (Planned Hours) | `=SUM(tbl_Fact[Planned_Hours])` | `2,992.51` | `#,##0.00 "h"` |
+  | **C4** | Tổng giờ chạy máy (Operating Hours) | `=SUM(tbl_Fact[Operating_Hours])` | `565.10` | `#,##0.00 "h"` |
+  | **C5** | Tổng sản lượng bánh (Total Output) | `=SUM(tbl_Fact[Effective_Total])` | `1,357,533,487` | `#,##0` |
+  | **C6** | Sản lượng đạt chuẩn (Good Output) | `=SUM(tbl_Fact[GoodMadeBiscuits])` | `457,821,115` | `#,##0` |
+  | **C7** | Sản lượng lý thuyết (Ideal Output) | `=SUM(tbl_Fact[Ideal_Production])` | `29,294,784` | `#,##0` |
+  | **C8** | **Availability (A %)** | `=C4 / C3` | **18.88%** | `0.00%` |
+  | **C9** | **Performance (P %)** | `=MIN(1, C5 / C7)` | **100.00%** | `0.00%` |
+  | **C10** | **Quality (Q %)** | `=C6 / C5` | **33.72%** | `0.00%` |
+  | **C11** | **OEE TOÀN NHÀ MÁY (%)** | `=C8 * C9 * C10` | **6.37%** | `0.00%` |
+
+  #### Bước 4: Thiết kế KPI Cards & Định dạng có điều kiện (Conditional Formatting)
+  1. **Tạo KPI Card nổi bật cho OEE**: Gộp ô `F3:H5`, gán giá trị `=C11`, tăng cỡ chữ lên `28pt Bold`.
+  2. **Thêm cảnh báo World Class**:
+     - Thêm ô mục tiêu `World Class Benchmark`: `85.00%`.
+     - Chênh lệch so với chuẩn: `=C11 - 85%` (Kết quả: `-78.63%`).
+     - Áp dụng **Conditional Formatting** > *Highlight Cells Rules*: Nếu giá trị `< 85%` thì tô nền màu đỏ nhạt, chữ đỏ đậm kèm nhãn `CRITICAL / BÁO ĐỘNG ĐỎ`.
+  3. **Biểu đồ Bullet / Gauge Chart**: Chèn biểu đồ cột ngang (Bar Chart) hoặc Gauge so sánh vạch thực tế `6.37%` với vạch đích `85.00%` để Ban giám đốc thấy trực quan khoảng cách chênh lệch.
+
 ---
 
 ### CÂU HỎI 2: PHÂN TÍCH ĐIỂM NGHẼN (BOTTLENECK ANALYSIS)
