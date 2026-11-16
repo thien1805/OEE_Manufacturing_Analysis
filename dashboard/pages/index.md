@@ -4,20 +4,70 @@ title: Plant OEE Executive Dashboard
 
 # 🏭 Grandma Edna's Biscuits — Plant OEE Dashboard
 
-Dữ liệu phân tích hiệu suất thiết bị tổng thể (**OEE**) được kết nối trực tiếp từ mô hình **dbt Gold Layer** (`my_factory.duckdb`).
+Interactive manufacturing intelligence dashboard powered by **dbt Gold Layer** models directly querying [DuckDB](https://duckdb.org/) (`my_factory.duckdb`).
+
+---
+
+## 🎛️ Interactive Filters & Slicers
+
+```sql filter_machines
+select distinct machine_name
+from oee_factory.production_runs_detailed
+order by machine_name
+```
+
+```sql filter_types
+select distinct machine_type
+from oee_factory.production_runs_detailed
+order by machine_type
+```
+
+```sql filter_products
+select distinct product_name
+from oee_factory.production_runs_detailed
+order by product_name
+```
+
+<Grid cols=3>
+    <div>
+        <Dropdown data={filter_machines} name=selected_machine value=machine_name title="Machine">
+            <DropdownOption value="%" valueLabel="All Machines" />
+        </Dropdown>
+    </div>
+    <div>
+        <Dropdown data={filter_types} name=selected_type value=machine_type title="Machine Type">
+            <DropdownOption value="%" valueLabel="All Types" />
+        </Dropdown>
+    </div>
+    <div>
+        <Dropdown data={filter_products} name=selected_product value=product_name title="Product">
+            <DropdownOption value="%" valueLabel="All Products" />
+        </Dropdown>
+    </div>
+</Grid>
+
+---
+
+## 📌 Executive KPIs
 
 ```sql summary_kpi
 select
-    sum(operating_hours) / nullif(sum(planned_hours), 0) as availability_rate,
-    1.00 as performance_rate,
-    sum(good_biscuits) / nullif(sum(total_biscuits), 0) as quality_rate,
-    (sum(operating_hours) / nullif(sum(planned_hours), 0)) *
-    1.00 *
-    (sum(good_biscuits) / nullif(sum(total_biscuits), 0)) as oee_rate,
-    sum(total_biscuits) as total_produced,
-    sum(good_biscuits) as total_good,
-    sum(scrap_biscuits) as total_scrap
-from oee_factory.daily_plant_oee
+    coalesce(sum(operating_hours) / nullif(sum(planned_hours), 0), 0) as availability_rate,
+    coalesce(least(1.0, sum(total_biscuits) / nullif(sum(ideal_biscuits), 0)), 0) as performance_rate,
+    coalesce(sum(good_biscuits) / nullif(sum(total_biscuits), 0), 0) as quality_rate,
+    coalesce(
+        (sum(operating_hours) / nullif(sum(planned_hours), 0)) *
+        least(1.0, sum(total_biscuits) / nullif(sum(ideal_biscuits), 0)) *
+        (sum(good_biscuits) / nullif(sum(total_biscuits), 0)),
+        0
+    ) as oee_rate,
+    coalesce(sum(total_biscuits), 0) as total_produced,
+    coalesce(sum(good_biscuits), 0) as total_good,
+    coalesce(sum(scrap_biscuits), 0) as total_scrap
+from oee_factory.production_runs_detailed
+where machine_name like '${inputs.selected_machine.value}'
+  and machine_type like '${inputs.selected_type.value}'
+  and product_name like '${inputs.selected_product.value}'
 ```
 
 <Grid cols=4>
@@ -30,35 +80,44 @@ from oee_factory.daily_plant_oee
     <BigValue 
         data={summary_kpi} 
         value=availability_rate 
-        title="Availability (Độ khả dụng)" 
+        title="Availability (A)" 
         fmt="0.0%" 
     />
     <BigValue 
         data={summary_kpi} 
         value=performance_rate 
-        title="Performance (Hiệu suất vận hành)" 
+        title="Performance (P)" 
         fmt="0.0%" 
     />
     <BigValue 
         data={summary_kpi} 
         value=quality_rate 
-        title="Quality (Chất lượng)" 
+        title="Quality (Q)" 
         fmt="0.0%" 
     />
 </Grid>
 
 ---
 
-## 📈 Xu Hướng OEE & 3 Trụ Cột Hàng Ngày
+## 📈 Daily OEE & 3 Pillars Trend
 
 ```sql daily_oee
 select
     date_id,
-    oee_rate as oee,
-    availability_rate as availability,
-    performance_rate as performance,
-    quality_rate as quality
-from oee_factory.daily_plant_oee
+    coalesce(sum(operating_hours) / nullif(sum(planned_hours), 0), 0) as availability,
+    coalesce(least(1.0, sum(total_biscuits) / nullif(sum(ideal_biscuits), 0)), 0) as performance,
+    coalesce(sum(good_biscuits) / nullif(sum(total_biscuits), 0), 0) as quality,
+    coalesce(
+        (sum(operating_hours) / nullif(sum(planned_hours), 0)) *
+        least(1.0, sum(total_biscuits) / nullif(sum(ideal_biscuits), 0)) *
+        (sum(good_biscuits) / nullif(sum(total_biscuits), 0)),
+        0
+    ) as oee
+from oee_factory.production_runs_detailed
+where machine_name like '${inputs.selected_machine.value}'
+  and machine_type like '${inputs.selected_type.value}'
+  and product_name like '${inputs.selected_product.value}'
+group by date_id
 order by date_id
 ```
 
@@ -66,21 +125,27 @@ order by date_id
     data={daily_oee} 
     x=date_id 
     y={["oee", "availability", "performance", "quality"]}
-    title="Biến thiên OEE và 3 nhân tố theo ngày"
+    title="Daily OEE & Component Dynamics (Reactive to Slicers)"
     yFmt="0.0%"
 />
 
 ---
 
-## ⏱️ Phân Tích Nguyên Nhân Dừng Máy (Downtime Losses)
+## ⏱️ Downtime Root Cause Breakdown
 
 ```sql downtime
 select
     oee_category,
-    downtime_hours,
-    incident_count,
-    pct_of_downtime
-from oee_factory.downtime_summary
+    round(sum(duration_hours), 1) as downtime_hours,
+    count(*) as incident_count,
+    sum(duration_hours) / nullif(sum(sum(duration_hours)) over (), 0) as pct_of_downtime
+from oee_factory.production_runs_detailed
+where not is_operating_time
+  and machine_name like '${inputs.selected_machine.value}'
+  and machine_type like '${inputs.selected_type.value}'
+  and product_name like '${inputs.selected_product.value}'
+group by oee_category
+order by downtime_hours desc
 ```
 
 <Grid cols=2>
@@ -89,37 +154,47 @@ from oee_factory.downtime_summary
         x=oee_category 
         y=downtime_hours 
         swapXY=true 
-        title="Tổng số giờ dừng máy theo danh mục sự cố"
+        title="Downtime Duration by Failure Category"
     />
     <DataTable data={downtime}>
-        <Column id=oee_category title="Nguyên nhân dừng máy" />
-        <Column id=downtime_hours title="Thời gian (Giờ)" fmt="0.0" />
-        <Column id=incident_count title="Số lần dừng" fmt="#,##0" />
-        <Column id=pct_of_downtime title="Tỷ trọng (%)" fmt="0.0%" />
+        <Column id=oee_category title="Downtime Reason" />
+        <Column id=downtime_hours title="Duration (Hours)" fmt="0.0" />
+        <Column id=incident_count title="Incidents" fmt="#,##0" />
+        <Column id=pct_of_downtime title="Share (%)" fmt="0.0%" />
     </DataTable>
 </Grid>
 
 ---
 
-## ⚙️ Xếp Hạng Hiệu Suất Theo Thiết Bị (Machine Matrix)
+## ⚙️ Machine Performance Matrix
 
 ```sql machines
 select
     machine_name,
     machine_type,
-    run_hours,
-    availability_rate,
-    performance_rate,
-    quality_rate,
-    oee_rate
-from oee_factory.machine_performance
+    round(sum(duration_hours), 1) as total_hours,
+    round(sum(operating_hours), 1) as run_hours,
+    coalesce(sum(operating_hours) / nullif(sum(planned_hours), 0), 0) as availability_rate,
+    coalesce(least(1.0, sum(total_biscuits) / nullif(sum(ideal_biscuits), 0)), 0) as performance_rate,
+    coalesce(sum(good_biscuits) / nullif(sum(total_biscuits), 0), 0) as quality_rate,
+    coalesce(
+        (sum(operating_hours) / nullif(sum(planned_hours), 0)) *
+        least(1.0, sum(total_biscuits) / nullif(sum(ideal_biscuits), 0)) *
+        (sum(good_biscuits) / nullif(sum(total_biscuits), 0)),
+        0
+    ) as oee_rate
+from oee_factory.production_runs_detailed
+where machine_name like '${inputs.selected_machine.value}'
+  and machine_type like '${inputs.selected_type.value}'
+  and product_name like '${inputs.selected_product.value}'
+group by machine_name, machine_type
 order by oee_rate desc
 ```
 
 <DataTable data={machines} search=true rows=10>
-    <Column id=machine_name title="Tên máy" />
-    <Column id=machine_type title="Phân loại" />
-    <Column id=run_hours title="Giờ chạy" fmt="0.0" />
+    <Column id=machine_name title="Machine" />
+    <Column id=machine_type title="Type" />
+    <Column id=run_hours title="Run Hours" fmt="0.0" />
     <Column id=availability_rate title="Availability" fmt="0.0%" />
     <Column id=performance_rate title="Performance" fmt="0.0%" />
     <Column id=quality_rate title="Quality" fmt="0.0%" />
@@ -128,25 +203,30 @@ order by oee_rate desc
 
 ---
 
-## 🍪 Phân Tích Tỷ Lệ Phế Phẩm Theo Sản Phẩm (Scrap Analysis)
+## 🍪 Product Quality & Scrap Rate Analysis
 
 ```sql products
 select
     product_name,
-    total_biscuits,
-    good_biscuits,
-    scrap_biscuits,
-    scrap_rate,
-    quality_rate
-from oee_factory.product_quality
+    sum(total_biscuits) as total_biscuits,
+    sum(good_biscuits) as good_biscuits,
+    sum(scrap_biscuits) as scrap_biscuits,
+    coalesce(sum(scrap_biscuits) / nullif(sum(total_biscuits), 0), 0) as scrap_rate,
+    coalesce(sum(good_biscuits) / nullif(sum(total_biscuits), 0), 0) as quality_rate
+from oee_factory.production_runs_detailed
+where is_operating_time
+  and machine_name like '${inputs.selected_machine.value}'
+  and machine_type like '${inputs.selected_type.value}'
+  and product_name like '${inputs.selected_product.value}'
+group by product_name
 order by scrap_rate desc
 ```
 
 <DataTable data={products} search=true rows=10>
-    <Column id=product_name title="Sản phẩm" />
-    <Column id=total_biscuits title="Tổng sản lượng" fmt="#,##0" />
-    <Column id=good_biscuits title="Đạt chuẩn" fmt="#,##0" />
-    <Column id=scrap_biscuits title="Phế phẩm" fmt="#,##0" />
-    <Column id=scrap_rate title="Tỷ lệ phế phẩm (%)" fmt="0.0%" />
-    <Column id=quality_rate title="Chất lượng (Quality %)" fmt="0.0%" />
+    <Column id=product_name title="Product" />
+    <Column id=total_biscuits title="Total Output" fmt="#,##0" />
+    <Column id=good_biscuits title="Good Output" fmt="#,##0" />
+    <Column id=scrap_biscuits title="Scrap Output" fmt="#,##0" />
+    <Column id=scrap_rate title="Scrap Rate (%)" fmt="0.0%" />
+    <Column id=quality_rate title="Quality Rate (%)" fmt="0.0%" />
 </DataTable>

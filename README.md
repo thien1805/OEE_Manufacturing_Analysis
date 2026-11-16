@@ -1,149 +1,150 @@
 # OEE Manufacturing Analysis
 
-Dự án phân tích và tối ưu hóa chỉ số **OEE (Overall Equipment Effectiveness)** cho dây chuyền sản xuất nhà máy bánh quy (Grandma Edna), áp dụng kiến trúc **Medallion Architecture (Bronze - Silver - Gold)** kết hợp **Star Schema** với **DuckDB** và **dbt**.
+An end-to-end manufacturing intelligence project designed to analyze and optimize **Overall Equipment Effectiveness (OEE)** for a biscuit manufacturing plant (Grandma Edna's Biscuits). Built using the **Medallion Architecture (Bronze - Silver - Gold)** combined with a **Star Schema** data warehouse powered by **DuckDB**, **dbt**, and **Evidence.dev**.
 
 ---
 
-## 🎯 Mục tiêu dự án
+## 🎯 Project Objectives
 
-- **Đo lường OEE**: Tính toán chính xác 3 trụ cột Availability (A), Performance (P), Quality (Q) và chỉ số OEE tổng thể theo từng máy, sản phẩm và ca sản xuất.
-- **Phân tích nguyên nhân (Root Cause Analysis)**: Xác định nguyên nhân gây downtime, lãng phí tốc độ và tỷ lệ phế phẩm (scrap).
-- **Hỗ trợ ra quyết định**: Cung cấp bộ 10 truy vấn SQL chuyên sâu giải quyết các bài toán vận hành thực tế.
+- **OEE Measurement**: Accurately calculate the 3 foundational pillars — **Availability (A)**, **Performance (P)**, **Quality (Q)** — and plant-wide OEE across individual machines, product categories, and shifts.
+- **Root Cause Analysis (RCA)**: Pinpoint unplanned downtime drivers, speed losses, and severe scrap generation rates.
+- **Decision Support**: Deliver 10 dedicated analytical SQL models solving core operational challenges, paired with an interactive BI dashboard.
 
 ---
 
-## 🛠 Công nghệ sử dụng (Tech Stack)
+## 🛠 Tech Stack
 
-- **Storage / Warehouse**: [DuckDB](https://duckdb.org/) (In-process OLAP Database tốc độ cao)
+- **Storage / Warehouse**: [DuckDB](https://duckdb.org/) (High-performance, embedded in-process OLAP database)
 - **Transformation**: [dbt-core](https://www.getdbt.com/) & `dbt-duckdb`
-- **BI & Dashboard**: [Evidence.dev](https://evidence.dev/) (Code-first BI: Markdown + SQL)
+- **BI & Visualization**: [Evidence.dev](https://evidence.dev/) (Code-first BI: Markdown + SQL + Svelte charts)
 - **Data Ingestion & Scripts**: Python (`pandas`, `openpyxl`, `duckdb`)
-- **Reporting & Specs**: SQL, Excel, Dashboard Wireframe / Documentation
+- **Documentation & Reporting**: SQL, Excel, Automated Dashboard PDF reports
 
 ---
 
-## 🏗 Kiến trúc dữ liệu (Data Pipeline)
+## 🏗 Data Pipeline Architecture
 
 ```
-[ Excel Data Source ] 
-        │
-        ▼ (split_and_load.py)
-[ Bronze Layer ]  ──> bronze.fact, bronze.machine, bronze.product, bronze.target_speeds
-        │
-        ▼ (dbt staging - silver views)
-[ Silver Layer ]  ──> stg_fact, stg_machine, stg_product, stg_target_speeds
-        │
-        ▼ (dbt marts - gold tables)
-[ Gold Layer ]    ──> Star Schema:
-                      • Dimensions: dim_machine, dim_product, dim_date
-                      • Facts: fct_daily_oee, fct_production_runs
+[ Raw Excel Data Source ] 
+           │
+           ▼ (split_and_load.py)
+[ Bronze Layer ]   ──> bronze.fact, bronze.machine, bronze.product, bronze.target_speeds
+           │
+           ▼ (dbt staging - silver views)
+[ Silver Layer ]   ──> stg_fact, stg_machine, stg_product, stg_target_speeds
+           │
+           ▼ (dbt marts - gold tables)
+[ Gold Layer ]     ──> Star Schema:
+                       • Dimensions: dim_machine, dim_product, dim_date
+                       • Facts: fct_daily_oee, fct_production_runs
+           │
+           ▼
+[ Evidence Dashboard ] ──> Interactive Slicers, KPIs & Trend Visualizations
 ```
 
 ---
 
-## 📁 Cấu trúc thư mục
+## 📁 Project Directory Structure
 
 ```text
-├── dashboard/            # Báo cáo Web Dashboard tương tác (Evidence.dev)
-├── docs/                 # Tài liệu kiến trúc, pipeline lineage và dashboard specs
-│   └── images/           # Ảnh chụp màn hình dashboard và sơ đồ
-├── excel/                # Dữ liệu mẫu và báo cáo phân tích Excel
+├── dashboard/            # Interactive web dashboard (Evidence.dev)
+│   ├── pages/            # Dashboard markdown pages with reactive SQL
+│   └── sources/          # DuckDB datasource connections & queries
+├── docs/                 # Architecture guides, data lineage, and dashboard specs
+│   └── images/           # High-resolution dashboard screenshots
+├── excel/                # Sample datasets and analytical Excel reports
 ├── models/
-│   ├── staging/          # Silver layer: làm sạch, khử trùng lặp, chuẩn hóa
+│   ├── staging/          # Silver layer: data cleansing, deduplication, typing
 │   └── marts/            # Gold layer: Fact & Dimension tables (Star Schema)
-├── query/                # 10 câu truy vấn SQL phân tích chuyên sâu (Q1 -> Q10)
-├── check_data.py         # Script kiểm tra dữ liệu trong DuckDB
-├── dbt_project.yml       # Cấu hình dbt project
-├── profiles.yml          # Cấu hình kết nối dbt DuckDB
-├── requirements.txt      # Thư viện Python cần thiết
-├── run_query.py          # Script chạy nhanh truy vấn SQL
-└── split_and_load.py     # Script đọc file Excel và nạp vào tầng Bronze
+├── query/                # 10 deep-dive SQL queries answering strategic questions (Q1 - Q10)
+├── check_data.py         # Diagnostic script for DuckDB tables
+├── dbt_project.yml       # dbt project configuration
+├── profiles.yml          # dbt connection profiles for DuckDB
+├── requirements.txt      # Python dependencies
+├── run_query.py          # Fast SQL execution helper
+└── split_and_load.py     # Excel ingestion script to Bronze layer
 ```
 
 ---
 
-## 📊 Giao diện Báo cáo Điều hành (Evidence.dev Dashboard)
+## 📊 Interactive BI Dashboard (Evidence.dev)
 
-Báo cáo trực quan hóa tự động hóa hoàn toàn từ tầng **Gold** với các thẻ chỉ số điều hành, biểu đồ xu hướng ngày, phân tích dừng máy và ma trận thiết bị:
+A fully automated, reactive manufacturing analytics dashboard querying the **Gold Layer** in real time:
+
+- **Interactive Slicers**: Multi-dimensional filtering by **Machine**, **Machine Type**, and **Product**.
+- **Real-Time Calculation**: All KPI cards, daily component trends, downtime Pareto bars, and scrap tables dynamically recalculate based on the active slicer selection.
 
 <p align="center">
-  <img src="docs/images/dashboard_overview.png" alt="Grandma Edna's Biscuits - Plant OEE Executive Dashboard" width="95%" />
+  <img src="docs/images/dashboard_overview.png" alt="Grandma Edna's Biscuits - Plant OEE Executive Dashboard with Filters and Slicers" width="95%" />
 </p>
 
 ---
 
-## 🚀 Hướng dẫn cài đặt & Khởi chạy
+## 🚀 Getting Started
 
-### 1. Cài đặt môi trường
+### 1. Environment Setup
 
 ```bash
-# Tạo và kích hoạt virtual environment
+# Create and activate Python virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Cài đặt các thư viện cần thiết
+# Install required Python packages
 pip install -r requirements.txt
 ```
 
-### 2. Nạp dữ liệu nguồn vào DuckDB (Bronze)
+### 2. Ingest Source Data into DuckDB (Bronze)
 
 ```bash
 python split_and_load.py
 ```
 
-### 3. Xây dựng Data Models với dbt (Silver & Gold)
+### 3. Build Data Models with dbt (Silver & Gold)
 
 ```bash
-# Kiểm tra kết nối dbt
+# Verify dbt connection to DuckDB
 dbt debug
 
-# Chạy build toàn bộ model (staging views & mart tables)
+# Build all models (staging views & mart tables)
 dbt run
 
-# Kiểm tra tính toàn vẹn dữ liệu
+# Run data integrity tests
 dbt test
 ```
 
-### 4. Chạy truy vấn phân tích
+### 4. Execute Business Intelligence Queries
 
-Thực thi các script SQL trong thư mục `query/` trực tiếp trên DuckDB hoặc sử dụng script helper:
+Run the analytical SQL scripts in the `query/` folder directly on DuckDB or use the query runner script:
 
 ```bash
 python run_query.py
 ```
 
-### 5. Khởi chạy Web Dashboard (Evidence.dev)
-
-Dự án tích hợp sẵn web dashboard tương tác xây dựng bằng **Evidence.dev** kết nối trực tiếp đến DuckDB Gold Marts:
+### 5. Launch the Web Dashboard (Evidence.dev)
 
 ```bash
 cd dashboard
 
-# Trích xuất dữ liệu từ DuckDB sang Evidence
+# Extract and sync data from DuckDB Gold Marts
 npm run sources
 
-# Khởi chạy local dev server
+# Start the local development server
 npm run dev
 ```
 
-Mở trình duyệt tại `http://localhost:3000` để xem báo cáo trực quan gồm:
-- **Thẻ KPI điều hành**: OEE toàn nhà máy, Availability, Performance, Quality.
-- **Biểu đồ xu hướng OEE**: Biến thiên các trụ cột theo từng ngày.
-- **Phân tích tổn thất dừng máy (Downtime)**: Biểu đồ nguyên nhân sự cố và thời gian dừng.
-- **Ma trận thiết bị & chất lượng sản phẩm**: Bảng xếp hạng máy và tỷ lệ phế phẩm theo sản phẩm.
+Open your browser at **`http://localhost:3000`** to interact with the dashboard.
 
 ---
 
-## 📊 10 Câu hỏi phân tích trọng tâm (`query/`)
+## 📈 Strategic Business Questions Answered (`query/`)
 
-- **Q1 - Q3**: Tổng quan OEE toàn nhà máy, xếp hạng hiệu suất máy và độ biến thiên OEE theo thời gian.
-- **Q4 - Q6**: Phân tích chi tiết Downtime (nguyên nhân sự cố), Downtime theo ca làm việc và tổn thất tốc độ (Speed Loss).
-- **Q7 - Q8**: Phân tích tỷ lệ phế phẩm (Scrap / Quality Loss) và ma trận tương quan giữa Sản phẩm - Thiết bị.
-- **Q9 - Q10**: So sánh OEE thực tế với định mức kỹ thuật và kiến nghị tối ưu hóa năng lực sản xuất.
+- **Q1 - Q3 (Macro Health & Stability)**: Overall plant OEE baseline, machine performance rankings, and daily volatility trends.
+- **Q4 - Q6 (Downtime & Losses)**: Unplanned downtime root causes, shift-level variance, and machine speed degradation (Speed Loss).
+- **Q7 - Q8 (Quality & Scrap)**: Product defect rates, scrap distribution, and machine-product compatibility matrix.
+- **Q9 - Q10 (Capacity & Optimization)**: Actual output vs. engineering design limits, accompanied by high-ROI bottleneck remediation roadmaps.
 
 ---
 
-## 📄 License & Thông tin
+## 📄 License & Information
 
-Dự án phục vụ mục đích nghiên cứu, học tập và ứng dụng thực tiễn trong kỹ thuật dữ liệu sản xuất (Manufacturing Data Analytics).
-
+This project is developed for educational and industrial research purposes in manufacturing data engineering and operational excellence.
