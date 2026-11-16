@@ -16,6 +16,7 @@ Dự án phân tích và tối ưu hóa chỉ số **OEE (Overall Equipment Effe
 
 - **Storage / Warehouse**: [DuckDB](https://duckdb.org/) (In-process OLAP Database tốc độ cao)
 - **Transformation**: [dbt-core](https://www.getdbt.com/) & `dbt-duckdb`
+- **BI & Dashboard**: [Evidence.dev](https://evidence.dev/) (Code-first BI: Markdown + SQL)
 - **Data Ingestion & Scripts**: Python (`pandas`, `openpyxl`, `duckdb`)
 - **Reporting & Specs**: SQL, Excel, Dashboard Wireframe / Documentation
 
@@ -43,7 +44,9 @@ Dự án phân tích và tối ưu hóa chỉ số **OEE (Overall Equipment Effe
 ## 📁 Cấu trúc thư mục
 
 ```text
+├── dashboard/            # Báo cáo Web Dashboard tương tác (Evidence.dev)
 ├── docs/                 # Tài liệu kiến trúc, pipeline lineage và dashboard specs
+│   └── images/           # Ảnh chụp màn hình dashboard và sơ đồ
 ├── excel/                # Dữ liệu mẫu và báo cáo phân tích Excel
 ├── models/
 │   ├── staging/          # Silver layer: làm sạch, khử trùng lặp, chuẩn hóa
@@ -56,6 +59,16 @@ Dự án phân tích và tối ưu hóa chỉ số **OEE (Overall Equipment Effe
 ├── run_query.py          # Script chạy nhanh truy vấn SQL
 └── split_and_load.py     # Script đọc file Excel và nạp vào tầng Bronze
 ```
+
+---
+
+## 📊 Giao diện Báo cáo Điều hành (Evidence.dev Dashboard)
+
+Báo cáo trực quan hóa tự động hóa hoàn toàn từ tầng **Gold** với các thẻ chỉ số điều hành, biểu đồ xu hướng ngày, phân tích dừng máy và ma trận thiết bị:
+
+<p align="center">
+  <img src="docs/images/dashboard_overview.png" alt="Grandma Edna's Biscuits - Plant OEE Executive Dashboard" width="95%" />
+</p>
 
 ---
 

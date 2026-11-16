@@ -8,10 +8,12 @@ Dữ liệu phân tích hiệu suất thiết bị tổng thể (**OEE**) đư�
 
 ```sql summary_kpi
 select
-    round(avg(oee_pct), 1) as avg_oee,
-    round(avg(availability_pct), 1) as avg_availability,
-    round(avg(performance_pct), 1) as avg_performance,
-    round(avg(quality_pct), 1) as avg_quality,
+    sum(operating_hours) / nullif(sum(planned_hours), 0) as availability_rate,
+    1.00 as performance_rate,
+    sum(good_biscuits) / nullif(sum(total_biscuits), 0) as quality_rate,
+    (sum(operating_hours) / nullif(sum(planned_hours), 0)) *
+    1.00 *
+    (sum(good_biscuits) / nullif(sum(total_biscuits), 0)) as oee_rate,
     sum(total_biscuits) as total_produced,
     sum(good_biscuits) as total_good,
     sum(scrap_biscuits) as total_scrap
@@ -21,25 +23,25 @@ from oee_factory.daily_plant_oee
 <Grid cols=4>
     <BigValue 
         data={summary_kpi} 
-        value=avg_oee 
+        value=oee_rate 
         title="Plant Overall OEE" 
         fmt="0.0%" 
     />
     <BigValue 
         data={summary_kpi} 
-        value=avg_availability 
+        value=availability_rate 
         title="Availability (Độ khả dụng)" 
         fmt="0.0%" 
     />
     <BigValue 
         data={summary_kpi} 
-        value=avg_performance 
+        value=performance_rate 
         title="Performance (Hiệu suất vận hành)" 
         fmt="0.0%" 
     />
     <BigValue 
         data={summary_kpi} 
-        value=avg_quality 
+        value=quality_rate 
         title="Quality (Chất lượng)" 
         fmt="0.0%" 
     />
@@ -52,10 +54,10 @@ from oee_factory.daily_plant_oee
 ```sql daily_oee
 select
     date_id,
-    oee_pct as oee,
-    availability_pct as availability,
-    performance_pct as performance,
-    quality_pct as quality
+    oee_rate as oee,
+    availability_rate as availability,
+    performance_rate as performance,
+    quality_rate as quality
 from oee_factory.daily_plant_oee
 order by date_id
 ```
@@ -106,22 +108,22 @@ select
     machine_name,
     machine_type,
     run_hours,
-    availability_pct,
-    performance_pct,
-    quality_pct,
-    oee_pct
+    availability_rate,
+    performance_rate,
+    quality_rate,
+    oee_rate
 from oee_factory.machine_performance
-order by oee_pct desc
+order by oee_rate desc
 ```
 
 <DataTable data={machines} search=true rows=10>
     <Column id=machine_name title="Tên máy" />
     <Column id=machine_type title="Phân loại" />
     <Column id=run_hours title="Giờ chạy" fmt="0.0" />
-    <Column id=availability_pct title="Availability" fmt="0.0%" />
-    <Column id=performance_pct title="Performance" fmt="0.0%" />
-    <Column id=quality_pct title="Quality" fmt="0.0%" />
-    <Column id=oee_pct title="OEE" fmt="0.0%" />
+    <Column id=availability_rate title="Availability" fmt="0.0%" />
+    <Column id=performance_rate title="Performance" fmt="0.0%" />
+    <Column id=quality_rate title="Quality" fmt="0.0%" />
+    <Column id=oee_rate title="OEE" fmt="0.0%" />
 </DataTable>
 
 ---
@@ -134,10 +136,10 @@ select
     total_biscuits,
     good_biscuits,
     scrap_biscuits,
-    scrap_rate_pct,
-    quality_pct
+    scrap_rate,
+    quality_rate
 from oee_factory.product_quality
-order by scrap_rate_pct desc
+order by scrap_rate desc
 ```
 
 <DataTable data={products} search=true rows=10>
@@ -145,6 +147,6 @@ order by scrap_rate_pct desc
     <Column id=total_biscuits title="Tổng sản lượng" fmt="#,##0" />
     <Column id=good_biscuits title="Đạt chuẩn" fmt="#,##0" />
     <Column id=scrap_biscuits title="Phế phẩm" fmt="#,##0" />
-    <Column id=scrap_rate_pct title="Tỷ lệ phế phẩm (%)" fmt="0.0%" />
-    <Column id=quality_pct title="Chất lượng (Quality %)" fmt="0.0%" />
+    <Column id=scrap_rate title="Tỷ lệ phế phẩm (%)" fmt="0.0%" />
+    <Column id=quality_rate title="Chất lượng (Quality %)" fmt="0.0%" />
 </DataTable>
