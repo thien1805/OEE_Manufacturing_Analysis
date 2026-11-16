@@ -99,6 +99,26 @@ Thực thi các script SQL trong thư mục `query/` trực tiếp trên DuckDB 
 python run_query.py
 ```
 
+### 5. Khởi chạy Web Dashboard (Evidence.dev)
+
+Dự án tích hợp sẵn web dashboard tương tác xây dựng bằng **Evidence.dev** kết nối trực tiếp đến DuckDB Gold Marts:
+
+```bash
+cd dashboard
+
+# Trích xuất dữ liệu từ DuckDB sang Evidence
+npm run sources
+
+# Khởi chạy local dev server
+npm run dev
+```
+
+Mở trình duyệt tại `http://localhost:3000` để xem báo cáo trực quan gồm:
+- **Thẻ KPI điều hành**: OEE toàn nhà máy, Availability, Performance, Quality.
+- **Biểu đồ xu hướng OEE**: Biến thiên các trụ cột theo từng ngày.
+- **Phân tích tổn thất dừng máy (Downtime)**: Biểu đồ nguyên nhân sự cố và thời gian dừng.
+- **Ma trận thiết bị & chất lượng sản phẩm**: Bảng xếp hạng máy và tỷ lệ phế phẩm theo sản phẩm.
+
 ---
 
 ## 📊 10 Câu hỏi phân tích trọng tâm (`query/`)
@@ -113,3 +133,4 @@ python run_query.py
 ## 📄 License & Thông tin
 
 Dự án phục vụ mục đích nghiên cứu, học tập và ứng dụng thực tiễn trong kỹ thuật dữ liệu sản xuất (Manufacturing Data Analytics).
+

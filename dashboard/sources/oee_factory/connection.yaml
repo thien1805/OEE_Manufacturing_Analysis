@@ -1,0 +1,4 @@
+name: oee_factory
+type: duckdb
+options:
+  filename: ../../../my_factory.duckdb
