@@ -101,18 +101,52 @@ where machine_name like '${inputs.selected_machine.value}'
 
 ## 📈 Daily OEE & 3 Pillars Trend
 
-```sql daily_oee
+```sql daily_trends_unpivoted
 select
     date_id,
-    coalesce(sum(operating_hours) / nullif(sum(planned_hours), 0), 0) as availability,
-    coalesce(least(1.0, sum(total_biscuits) / nullif(sum(ideal_biscuits), 0)), 0) as performance,
-    coalesce(sum(good_biscuits) / nullif(sum(total_biscuits), 0), 0) as quality,
+    'OEE' as metric,
     coalesce(
         (sum(operating_hours) / nullif(sum(planned_hours), 0)) *
         least(1.0, sum(total_biscuits) / nullif(sum(ideal_biscuits), 0)) *
         (sum(good_biscuits) / nullif(sum(total_biscuits), 0)),
         0
-    ) as oee
+    ) as rate
+from oee_factory.production_runs_detailed
+where machine_name like '${inputs.selected_machine.value}'
+  and machine_type like '${inputs.selected_type.value}'
+  and product_name like '${inputs.selected_product.value}'
+group by date_id
+
+union all
+
+select
+    date_id,
+    'Availability' as metric,
+    coalesce(sum(operating_hours) / nullif(sum(planned_hours), 0), 0) as rate
+from oee_factory.production_runs_detailed
+where machine_name like '${inputs.selected_machine.value}'
+  and machine_type like '${inputs.selected_type.value}'
+  and product_name like '${inputs.selected_product.value}'
+group by date_id
+
+union all
+
+select
+    date_id,
+    'Performance' as metric,
+    coalesce(least(1.0, sum(total_biscuits) / nullif(sum(ideal_biscuits), 0)), 0) as rate
+from oee_factory.production_runs_detailed
+where machine_name like '${inputs.selected_machine.value}'
+  and machine_type like '${inputs.selected_type.value}'
+  and product_name like '${inputs.selected_product.value}'
+group by date_id
+
+union all
+
+select
+    date_id,
+    'Quality' as metric,
+    coalesce(sum(good_biscuits) / nullif(sum(total_biscuits), 0), 0) as rate
 from oee_factory.production_runs_detailed
 where machine_name like '${inputs.selected_machine.value}'
   and machine_type like '${inputs.selected_type.value}'
@@ -122,11 +156,13 @@ order by date_id
 ```
 
 <LineChart 
-    data={daily_oee} 
+    data={daily_trends_unpivoted} 
     x=date_id 
-    y={["oee", "availability", "performance", "quality"]}
-    title="Daily OEE & Component Dynamics (Reactive to Slicers)"
+    y=rate 
+    series=metric 
+    title="Daily OEE & Component Dynamics (Reactive to Slicers)" 
     yFmt="0.0%"
+    legend=true
 />
 
 ---
@@ -153,8 +189,7 @@ order by downtime_hours desc
         data={downtime} 
         x=oee_category 
         y=downtime_hours 
-        swapXY=true 
-        title="Downtime Duration by Failure Category"
+        title="Downtime Duration by Category (Hours)"
     />
     <DataTable data={downtime}>
         <Column id=oee_category title="Downtime Reason" />
